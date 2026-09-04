@@ -1,0 +1,89 @@
+# WARP MASQUE 配置生成器
+
+一键生成 Cloudflare WARP 的 mihomo 配置，41 个节点，跑在 GitHub Actions 上。
+不用自己装环境，不用服务器。
+
+## 怎么用
+
+**1. Fork 这个仓库**
+
+点右上角 Fork。
+
+**2. 打开 Actions 页面**
+
+Fork 过来的仓库默认不开 Actions，会看到一个提示，点
+`I understand my workflows, go ahead and enable them` 就行。
+
+**3. 跑一次**
+
+左边选 `生成 WARP MASQUE 配置`，右边点 `Run workflow`，绿色按钮再点一次。
+等一分钟左右。
+
+**4. 下载**
+
+跑完点进这次运行的页面，最下面 `Artifacts` 里有个 `warp-masque-config`，
+下载解压。
+
+**5. 导入客户端**
+
+解压出来的 `warp-masque.yaml` 就是配置，直接导入 mihomo 内核的客户端。
+
+## 必须用 mihomo Alpha 内核
+
+masque 只有 mihomo 的 Alpha 分支才有，稳定版导进去会直接报错说不认识这个类型。
+所以客户端不光要是 mihomo 内核，还得能切到 Alpha。
+
+**Windows / macOS / Linux**
+
+[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev) —— 装完打开
+`设置 → Clash 内核`，把内核换成 Alpha，重启一下。
+
+**Android**
+
+[ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid/releases/tag/Prerelease-alpha)
+—— 认准 `Prerelease-alpha` 那个 tag，正式版不行。
+
+**跨平台，也可以看看**
+
+[FlClash](https://github.com/chen08209/FlClash) —— 界面比较新，Windows / macOS /
+Linux / Android 都有。内核版本在设置里换。
+
+**不用图形界面**
+
+直接下 [mihomo Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha)
+二进制，`mihomo -d 配置目录` 跑起来就行。
+
+### 这些用不了
+
+Stash、Shadowrocket、Surge、Quantumult X、Karing 都不是 mihomo 内核，
+导进去不认 masque。iOS 目前没有能用的，别折腾了。
+
+## 关于节点
+
+41 个节点是同一个 WARP 账号的不同接入地址，**出口 IP 是一样的**。
+多节点是为了某个地址被墙时能自动换一个，不是多国家落地。
+想选国家得用 WARP+ 或 ZeroTrust，这个仓库不支持。
+
+里面有 20 个 IPv6 节点，你没 IPv6 的话它们会连不上，但客户端会自动跳过，
+不影响用。
+
+## 几个提醒
+
+配置里的 `private-key` 相当于账号密码，别往外发。artifact 默认存 7 天，
+公开仓库的 artifact 谁都能下载，介意就把 fork 出来的仓库设成私有。
+
+想换一套密钥就重新跑一次 workflow，每次都是全新账号。
+
+别写成定时任务高频跑，WARP 会风控封号。
+
+## 想改配置
+
+`scripts/gen_masque.py` 顶部三个常量控制节点池：
+
+```python
+V4    = [...]   # IPv4 接入地址
+V6    = [...]   # IPv6 接入地址
+PORTS = (...)   # 端口
+```
+
+分流规则用的是 ACL4SSR，改 `RULESETS` 那个列表。
