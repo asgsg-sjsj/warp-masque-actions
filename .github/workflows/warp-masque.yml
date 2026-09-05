@@ -68,6 +68,8 @@ jobs:
       - name: 打包凭据与配置
         run: |
           cp config.json dist/usque-config.json
+          test -s dist/warp-masque.yaml
+          test -s dist/warp-masque-shadowrocket.txt
           ls -l dist
 
       - name: 上传 artifact

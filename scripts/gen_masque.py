@@ -11,6 +11,7 @@
 import json
 import os
 import sys
+import urllib.parse
 
 # 全部经真机握手实测（2026-09-05，psg2）
 # QUIC 回包不等于能建隧道：162.159.194/196/197/204 段与 v6 的 102/105 段
@@ -88,6 +89,35 @@ def node_name(ip, port):
     return f"WARP-{'.'.join(ip.split('.')[2:])}-{port}"
 
 
+def masque_links(cfg, priv, pub):
+    """生成 Shadowrocket 用的 masque:// 链接。
+
+    格式参数与字段名对齐 Shadowrocket 的 masque 实现：
+    masque://<endpoint_ip>:<port>?publicKey=&privateKey=&ip=&dns=&udp=&cc=&flag=#<名称>
+    publicKey 用剥掉 PEM 头尾的 base64 DER，privateKey 直接用 usque 的原值。
+    逗号不转义（Shadowrocket 的 dns 字段接受逗号分隔）。
+    """
+    def enc(v):
+        return urllib.parse.quote(str(v), safe="").replace("%2C", ",")
+
+    lines = []
+    for ip in V4 + V6:
+        for port in PORTS:
+            params = "&".join([
+                "publicKey=" + enc(pub),
+                "privateKey=" + enc(priv),
+                "ip=" + enc(cfg["ipv4"]),
+                "dns=" + enc("1.1.1.1, 8.8.8.8"),
+                "udp=1",
+                "cc=" + enc(""),
+                "flag=" + enc("CDN"),
+            ])
+            host = "[%s]" % ip if ":" in ip else ip
+            name = node_name(ip, port)
+            lines.append("masque://%s:%d?%s#%s" % (host, port, params, enc(name)))
+    return lines
+
+
 def build(cfg):
     priv = cfg["private_key"].strip()
     if priv.startswith("-----"):
@@ -120,7 +150,9 @@ def build(cfg):
     path: ./ruleset/{pn}.list""")
         rules.append(f"  - RULE-SET,{pn},{group}")
 
-    return f"""# Cloudflare WARP over MASQUE - mihomo 配置
+    links = masque_links(cfg, priv, pub)
+
+    return links, f"""# Cloudflare WARP over MASQUE - mihomo 配置
 # 由 GitHub Actions 自动生成，请勿手工编辑
 # 需要 mihomo Alpha 分支：稳定版没有 masque outbound
 #
@@ -324,12 +356,18 @@ def main():
         cfg = json.load(f)
 
     os.makedirs(outdir, exist_ok=True)
-    yaml, count = build(cfg)
+    links, yaml, count = build(cfg)
+
     path = os.path.join(outdir, "warp-masque.yaml")
     with open(path, "w") as f:
         f.write(yaml)
 
+    txt = os.path.join(outdir, "warp-masque-shadowrocket.txt")
+    with open(txt, "w") as f:
+        f.write("\n".join(links) + "\n")
+
     print(f"已生成 {path}")
+    print(f"已生成 {txt}（{len(links)} 条 masque:// 链接）")
     print(f"节点数 {count}")
     print(f"内网地址 {cfg['ipv4']} / {cfg['ipv6']}")
 
