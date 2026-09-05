@@ -36,7 +36,10 @@ masque 只有 mihomo 的 Alpha 分支才有，稳定版导进去会直接报错�
 **Windows / macOS / Linux**
 
 [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev) —— 装完打开
-`设置 → Clash 内核`，把内核换成 Alpha，重启一下。
+`设置 → Clash 内核`，把内核换成 Alpha，等它下载完自动重启。
+
+> 切内核和升级 Verge 本身是两回事。把程序更新到最新版**不会**让内核变成 Alpha，
+> 得手动在这个页面切。没切就导入会报 `unsupport proxy type: masque`。
 
 **Android**
 
@@ -75,6 +78,73 @@ Stash、Shadowrocket、Surge、Quantumult X、Karing 都不是 mihomo 内核，
 想换一套密钥就重新跑一次 workflow，每次都是全新账号。
 
 别写成定时任务高频跑，WARP 会风控封号。
+
+## 常见问题
+
+### 导入报「unsupport proxy type: masque」
+
+完整报错长这样：
+
+```
+订阅配置校验失败，请检查订阅配置文件，变更已撤销
+level=error msg="proxy 0: unsupport proxy type: masque"
+```
+
+**内核还是稳定版，没切到 Alpha。** 这是目前最多人踩的一个。
+
+Clash Verge Rev 的切法：打开「设置 → Clash 内核」，选 Alpha，点切换，
+等它下载完会自动重启内核。然后再导入配置。
+
+注意切内核和更新程序本身是两回事，把 Verge 升到最新版并不会让内核变成 Alpha。
+
+### Actions 页面有个黄色警告，要紧吗
+
+如果你看到的是这个：
+
+```
+Node.js 20 is deprecated. The following actions target Node.js 20 ...
+```
+
+不影响结果，配置照样能生成。这个仓库已经升级到 node24 的 action 版本，
+重新 Fork 或者同步一下上游就没有了。
+
+Fork 早了的话，把 `.github/workflows/warp-masque.yml` 里这两行改一下：
+
+```yaml
+uses: actions/checkout@v6
+uses: actions/upload-artifact@v6
+```
+
+### 为什么节点延迟不一样，但测速结果都差不多
+
+41 个节点是同一个 WARP 账号的不同接入地址，**出口 IP 是同一个**。
+延迟差异来自你到接入点的网络路径，真正落地的还是那台 Cloudflare 机器。
+
+所以挑延迟最低的用就行，不用一个个试速度。
+
+### artifact 过期了怎么办
+
+重新跑一次 workflow，会生成一套全新的密钥和配置。artifact 默认存 7 天，
+想留久一点在 Run workflow 的时候把保留天数改大。
+
+### iOS 能用吗
+
+不能。目前没有能跑 mihomo 内核的 iOS 客户端，Shadowrocket、Stash、
+Quantumult X 都不行。知道有哪个可以的话欢迎开 issue 或者发 PR。
+
+### 能选国家吗
+
+不能。免费 WARP 账号的出口由 Cloudflare 任播决定，你在哪就近落哪。
+要指定落地得用 WARP+ 或者 ZeroTrust，这个仓库不支持。
+
+### 跑 workflow 报 login failed
+
+```
+Failed to connect tunnel: login failed!
+```
+
+账号被 Cloudflare 风控了，通常是短时间内建连太频繁导致的。
+重新跑一次 workflow 拿新账号就行，另外别把 workflow 改成定时高频跑。
 
 ## 想改配置
 
